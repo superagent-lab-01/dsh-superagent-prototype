@@ -260,7 +260,11 @@ export class Sessions {
     const register = this.registerTool(agent, binding)
     for (const tool of host.tools(agent, ticket)) register(tool.name, tool.description, tool.schema, tool.execute)
     if (master) {
-      binding.disposers.push(agent.ctx.tools.restrict({ allow: ['skill', 'bash', 'read', 'read_image', 'job_output', 'job_list', 'job_kill'] }),
+      // `restrict` refuses a name this profile never registered, and the shell tool is `pwsh` rather than
+      // `bash` outside POSIX systems, so keep only the tools that exist here.
+      const masterTools = ['skill', 'bash', 'pwsh', 'read', 'read_image', 'job_output', 'job_list', 'job_kill']
+        .filter(name => name === 'skill' || Boolean(this.ctx.tools.get(name)))
+      binding.disposers.push(agent.ctx.tools.restrict({ allow: masterTools }),
         agent.ctx.tools.guard(execution => noWait(execution, () => this.routed(agent))))
     } else {
       // An Executor Session keeps the profile's work tools it has, which DSH requires to be known; its own tools are not masked.
